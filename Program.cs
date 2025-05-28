@@ -83,7 +83,12 @@ builder.Services.AddSwaggerGen(option =>
 // CORS policy
 builder.Services.AddCors(p => p.AddPolicy("PoliticaCors", build =>
 {
-    build.WithOrigins("").AllowAnyMethod().AllowAnyHeader();
+    build.WithOrigins(
+        "http://localhost:4200",
+        "https://abysswatchers.netlify.app"
+    )
+    .AllowAnyMethod()
+    .AllowAnyHeader();
 }));
 
 var app = builder.Build();
