@@ -8,14 +8,24 @@ using WowGuildAPI.Respository.GuildRespository.Interfaces;
 using WowGuildAPI.Respository.CharacterRespository.Interfaces;
 using WowGuildAPI.Respository.CharacterRespository;
 using WowGuildAPI.Services.Interfaces;
-
+using DotNetEnv;
 
 var builder = WebApplication.CreateBuilder(args);
 
+Env.Load();
+
+var mongoDb = Environment.GetEnvironmentVariable("MONGO_DB");
+var redis = Environment.GetEnvironmentVariable("REDIS");
+
+if (!string.IsNullOrEmpty(mongoDb))
+    builder.Configuration["ConnectionStrings:MongoDB"] = mongoDb;
+
+if (!string.IsNullOrEmpty(redis))
+    builder.Configuration["ConnectionStrings:Redis"] = redis;
+
 builder.Logging.AddConsole();
 
-
-//Cache support
+// Cache support
 builder.Services.AddResponseCaching();
 builder.Services.AddStackExchangeRedisCache(options =>
 {
@@ -24,7 +34,7 @@ builder.Services.AddStackExchangeRedisCache(options =>
     options.InstanceName = "WowGuildCache:";
 });
 
-//Add services
+// Add services
 builder.Services.AddScoped<IRaiderIoGuildProfileService, RaiderIoGuildProfileService>();
 builder.Services.AddScoped<IRaiderIoCharacterProfileService, RaiderIoCharacterProfileService>();
 builder.Services.AddScoped<ICacheService, CacheService>();
@@ -35,31 +45,28 @@ builder.Services.AddSingleton<IMongoClient>(serviceProvider =>
     return new MongoClient(connectionString);
 });
 
-//Add Repositories
+// Add Repositories
 builder.Services.AddScoped<IGuildRepository, GuildRepository>();
 builder.Services.AddScoped<IRaidProgressionsRepository, RaidProgressionsRepository>();
 builder.Services.AddScoped<IRaidRankingsRepository, RaidRankingsRespository>();
 builder.Services.AddScoped<IMembersRepository, MembersRespository>();
-
 builder.Services.AddScoped<ICharacterRepository, CharacterRepository>();
 builder.Services.AddScoped<IMythicPlusScoresRepository, MythicPlusScoresRepository>();
 builder.Services.AddScoped<IMythicPlusBestRunsRepository, MythicPlusBestRunsRepository>();
 
 builder.Services.AddHttpClient();
 
-//Add Mappers
+// Add Mappers
 builder.Services.AddAutoMapper(typeof(GuildMapper));
 
 builder.Services.AddControllers(option =>
-option.CacheProfiles.Add("Cache60",
-    new CacheProfile()
-    {
-        Duration = 60
-    }));
+    option.CacheProfiles.Add("Cache60",
+        new CacheProfile()
+        {
+            Duration = 60
+        }));
 
-
-
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
+// Swagger config
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(option =>
 {
@@ -71,12 +78,9 @@ builder.Services.AddSwaggerGen(option =>
         Version = "v1",
         Description = "API to get information about Wow guilds and characters"
     });
-}
-);
+});
 
-
-
-
+// CORS policy
 builder.Services.AddCors(p => p.AddPolicy("PoliticaCors", build =>
 {
     build.WithOrigins("").AllowAnyMethod().AllowAnyHeader();
@@ -84,12 +88,8 @@ builder.Services.AddCors(p => p.AddPolicy("PoliticaCors", build =>
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
+app.UseSwagger();
+app.UseSwaggerUI();
 
 app.UseHttpsRedirection();
 app.UseCors("PoliticaCors");
