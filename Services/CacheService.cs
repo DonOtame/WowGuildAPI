@@ -15,11 +15,13 @@ namespace WowGuildAPI.Services
 
         public async Task<T> GetOrCreateAsync<T>(string cacheKey, Func<Task<T>> createItem, TimeSpan? expiration = null)
         {
+            cacheKey = cacheKey.ToLowerInvariant().Replace(" ", "_");
+
             var cachedData = await _cache.GetStringAsync(cacheKey);
             if (!string.IsNullOrEmpty(cachedData))
             {
                 return JsonConvert.DeserializeObject<T>(cachedData);
-            }   
+            }
 
             var data = await createItem();
             if (data != null)
@@ -33,5 +35,6 @@ namespace WowGuildAPI.Services
 
             return data;
         }
+
     }
 }
